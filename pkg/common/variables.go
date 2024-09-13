@@ -1,5 +1,9 @@
 package common
 
+var (
+	RankMap = map[string]int{"钻石丝瓜": 2, "金钻丝瓜": 2, "小丝瓜": 1, "白金丝瓜": 1, "金丝瓜": 1, "注册会员": 1, "银丝瓜": 1}
+)
+
 const (
 	LiveTypeStreaming  = 1
 	LiveTypeRadio      = 2
@@ -23,4 +27,7 @@ const (
 	IMServerJumpURL    = "https://pocketapi.48.cn/im/api/v1/im/server/jump"
 	TeamLastMessageURL = "https://pocketapi.48.cn/im/api/v1/team/last/message/get"
 	TeamRoomInfoURL    = "https://pocketapi.48.cn/im/api/v1/im/team/room/info"
+	ShopUserUrl        = "https://shop.48.cn/Account"
+	ShopLoginUrl       = "https://user.48.cn/QuickLogin/login/"
+	ShopOrderUrl       = "https://shop.48.cn/TOrder/ticket_Add"
 )
