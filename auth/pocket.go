@@ -9,16 +9,16 @@ import (
 
 type PocketAuthenticatorConfig struct {
 	Header map[string]string
-	PocketSMSAuthenticatorConfig
-	PocketLoginAuthenticatorConfig
+	SMSConfig
+	LoginConfig
 }
 
-type PocketSMSAuthenticatorConfig struct {
+type SMSConfig struct {
 	Area   string
 	Mobile string
 }
 
-type PocketLoginAuthenticatorConfig struct {
+type LoginConfig struct {
 	Mobile           string
 	VerificationCode string
 }
@@ -33,8 +33,8 @@ func NewPocketAuthenticator(config PocketAuthenticatorConfig) PocketAuthenticato
 
 func (p *PocketAuthenticator) SendSMS() error {
 	payload := map[string]string{
-		"mobile": p.Config.PocketSMSAuthenticatorConfig.Mobile,
-		"area":   p.Config.PocketSMSAuthenticatorConfig.Area,
+		"mobile": p.Config.SMSConfig.Mobile,
+		"area":   p.Config.SMSConfig.Area,
 	}
 	_, _, err := tools.NewRequest("POST", common.SendSmsAPI, p.Config.Header, payload)
 	if err != nil {
@@ -45,8 +45,8 @@ func (p *PocketAuthenticator) SendSMS() error {
 
 func (p *PocketAuthenticator) LoginPocket() (string, error) {
 	payload := map[string]string{
-		"mobile": p.Config.PocketLoginAuthenticatorConfig.Mobile,
-		"code":   p.Config.PocketLoginAuthenticatorConfig.VerificationCode,
+		"mobile": p.Config.LoginConfig.Mobile,
+		"code":   p.Config.LoginConfig.VerificationCode,
 	}
 	_, body, err := tools.NewRequest("POST", common.LoginAPI, p.Config.Header, payload)
 	if err != nil {

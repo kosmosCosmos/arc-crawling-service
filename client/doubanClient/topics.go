@@ -1,4 +1,4 @@
-package douban
+package doubanClient
 
 import (
 	"fmt"

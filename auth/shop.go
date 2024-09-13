@@ -9,17 +9,17 @@ import (
 	"strings"
 )
 
-type ShopAuthenticatorConfig struct {
+type Config struct {
 	Header   map[string]string
 	Username string
 	Password string
 }
 
 type ShopAuthenticator struct {
-	Config ShopAuthenticatorConfig
+	Config Config
 }
 
-func NewShopAuthenticator(config ShopAuthenticatorConfig) ShopAuthenticator {
+func NewShopAuthenticator(config Config) ShopAuthenticator {
 	return ShopAuthenticator{Config: config}
 }
 
