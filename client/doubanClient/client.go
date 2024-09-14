@@ -6,8 +6,8 @@ type Config struct {
 }
 
 type APIClient struct {
-	cfg                 *Config
-	common              service // Reuse a single struct instead of allocating one for each service on the heap.
+	Cfg                 *Config
+	Common              service // Reuse a single struct instead of allocating one for each service on the heap.
 	WorkspaceServiceApi *DoubanServiceApiService
 }
 
@@ -22,11 +22,11 @@ type service struct {
 func NewAPIClient(cfg *Config) *APIClient {
 
 	c := &APIClient{}
-	c.cfg = cfg
-	c.common.client = c
+	c.Cfg = cfg
+	c.Common.client = c
 
 	// API Services
-	c.WorkspaceServiceApi = (*DoubanServiceApiService)(&c.common)
+	c.WorkspaceServiceApi = (*DoubanServiceApiService)(&c.Common)
 
 	return c
 }
