@@ -12,6 +12,40 @@ import (
 	"time"
 )
 
+func (d *DoubanServiceApiService) FetchAndParseReplies(topicId string) ([]map[string]interface{}, error) {
+	var replies []map[string]interface{}
+	var topicContent string
+	var topicCreateTime int64
+
+	for start := 0; ; start += 100 {
+		url := fmt.Sprintf(common.TopicUrl, topicId, start)
+		pageReplies, tContent, tCreateTime, err := d.FetchAndParseRepliesPage(url, start == 0)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch and parse replies on start %d: %w", start, err)
+		}
+
+		if len(pageReplies) == 0 {
+			break
+		}
+
+		replies = append(replies, pageReplies...)
+
+		if start == 0 {
+			topicContent = tContent
+			topicCreateTime = tCreateTime
+		}
+
+		time.Sleep(2 * time.Minute)
+	}
+
+	if len(replies) > 0 {
+		replies[0]["topicContent"] = topicContent
+		replies[0]["topicCreateTime"] = topicCreateTime
+	}
+
+	return replies, nil
+}
+
 func (dc *DoubanServiceApiService) FetchAndParse(url string, parser func(*goquery.Document) ([]map[string]interface{}, error)) ([]map[string]interface{}, error) {
 	_, body, err := tools.NewRequest("GET", url, dc.client.Cfg.Header, nil)
 	if err != nil {

@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/kosmosCosmos/arc-golang-toolkit v0.0.0-20240912082401-7d6fd24164ed
+	github.com/sirupsen/logrus v1.9.3
 	github.com/tidwall/gjson v1.17.3
 	github.com/tidwall/sjson v1.2.5
 )
