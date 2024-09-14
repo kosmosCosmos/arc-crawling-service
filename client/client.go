@@ -14,13 +14,10 @@ type DoubanClient struct {
 	apiClient *doubanClient.APIClient
 }
 
-func NewDoubanClient(auth auth.DoubanAuthenticator, header map[string]string, Id string) *DoubanClient {
-	cfg := doubanClient.NewConfiguration()
-	cfg.Header = header
-	cfg.ID = Id
+func NewDoubanClient(auth auth.DoubanAuthenticator, cfg doubanClient.Config) *DoubanClient {
 	return &DoubanClient{
 		auth:      auth,
-		apiClient: doubanClient.NewAPIClient(cfg),
+		apiClient: doubanClient.NewAPIClient(&cfg),
 	}
 }
 
