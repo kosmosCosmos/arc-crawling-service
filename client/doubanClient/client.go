@@ -11,10 +11,6 @@ type APIClient struct {
 	WorkspaceServiceApi *DoubanServiceApiService
 }
 
-func NewConfiguration() *Config {
-	return &Config{}
-}
-
 type service struct {
 	client *APIClient
 }

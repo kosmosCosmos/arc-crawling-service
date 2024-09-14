@@ -14,6 +14,10 @@ type DoubanClient struct {
 	apiClient *doubanClient.APIClient
 }
 
+func NewConfiguration() *doubanClient.Config {
+	return &doubanClient.Config{}
+}
+
 func NewDoubanClient(auth auth.DoubanAuthenticator, cfg doubanClient.Config) *DoubanClient {
 	return &DoubanClient{
 		auth:      auth,
