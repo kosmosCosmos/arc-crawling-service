@@ -17,10 +17,6 @@ type service struct {
 }
 
 func NewAPIClient(cfg *Configuration) *APIClient {
-	if cfg.Mysql != nil {
-
-	}
-
 	c := &APIClient{}
 	c.cfg = cfg
 	c.common.client = c

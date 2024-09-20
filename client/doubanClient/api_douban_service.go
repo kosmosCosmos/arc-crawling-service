@@ -1,7 +1,6 @@
 package doubanClient
 
 import (
-	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/araddon/dateparse"
@@ -11,27 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"xorm.io/xorm"
 )
 
 type DoubanServiceApiService service
-
-func (d *DoubanServiceApiService) DoubanServiceApiServiceInit() error {
-	mysqlDSN := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		d.client.cfg.Mysql.User,
-		d.client.cfg.Mysql.Password,
-		d.client.cfg.Mysql.Host,
-		d.client.cfg.Mysql.Port,
-		d.client.cfg.Mysql.Database,
-	)
-	engine, err := xorm.NewEngine("mysql", mysqlDSN)
-	if err != nil {
-		return errors.New("Failed to connect to MySQL: " + err.Error())
-	}
-	d.client.MysqlConnect = engine
-
-	return nil
-}
 
 func (d *DoubanServiceApiService) UpdateTopicAndReplies() error {
 	if err := d.client.MysqlConnect.Sync2(Topic{}); err != nil {
@@ -128,7 +109,7 @@ func (d *DoubanServiceApiService) parseTopic(url, groupId string) ([]*Topic, err
 			log.Printf("Failed to extract topic info: %v", err)
 			return
 		}
-		if tools.IsRecentTime(topic.LastReplyTime) {
+		if d.isRecentTime(topic.LastReplyTime, d.client.cfg.Interval) {
 			topics = append(topics, topic)
 		}
 	})
@@ -200,7 +181,7 @@ func (d *DoubanServiceApiService) parseReplies(url, topicId string, updateTopicD
 			log.Printf("Failed to extract reply info: %v", err)
 			return
 		}
-		if tools.IsRecentTime(reply.Time) {
+		if d.isRecentTime(reply.Time, d.client.cfg.Interval) {
 			replies = append(replies, reply)
 		}
 	})
@@ -305,4 +286,45 @@ func (d *DoubanServiceApiService) extractReplyInfo(s *goquery.Selection, topicId
 		DataCid:   dataCid,
 		LikeCount: likeCount,
 	}, nil
+}
+
+func (d *DoubanServiceApiService) isRecentTime(dateStr string, interval time.Duration) bool {
+	parsedTime, _ := d.parseDateTime(dateStr)
+	isRecent := parsedTime.Before(time.Now().Add(interval))
+	log.Printf("Time: %s, is recent: %t", parsedTime.Format("2006-01-02 15:04"), isRecent)
+	return isRecent
+}
+
+func (d *DoubanServiceApiService) parseDateTime(dateStr string) (time.Time, error) {
+	// 获取当前年份
+	currentYear := time.Now().Year()
+
+	// 检查日期字符串是否包含年份
+	if !strings.Contains(dateStr, fmt.Sprintf("%d", currentYear)) {
+		// 如果不包含年份，添加当前年份
+		dateStr = fmt.Sprintf("%d-%s", currentYear, dateStr)
+	}
+
+	// 尝试解析完整的日期时间字符串
+	// 这里假设输入格式为 "MM-DD HH:MM" 或 "YYYY-MM-DD HH:MM"
+	layouts := []string{
+		"2006-01-02 15:04",
+		"2006-01-02 15:04:05",
+	}
+
+	var parsedTime time.Time
+	var err error
+
+	for _, layout := range layouts {
+		parsedTime, err = time.ParseInLocation(layout, dateStr, time.Local)
+		if err == nil {
+			break
+		}
+	}
+
+	if err != nil {
+		return time.Time{}, fmt.Errorf("无法解析日期时间: %v", err)
+	}
+
+	return parsedTime, nil
 }
