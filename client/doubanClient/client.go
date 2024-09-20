@@ -1,9 +1,14 @@
 package doubanClient
 
+import (
+	"xorm.io/xorm"
+)
+
 type APIClient struct {
 	cfg    *Configuration
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
 
+	MysqlConnect     *xorm.Engine
 	DoubanServiceApi *DoubanServiceApiService
 }
 
@@ -12,6 +17,9 @@ type service struct {
 }
 
 func NewAPIClient(cfg *Configuration) *APIClient {
+	if cfg.Mysql != nil {
+
+	}
 
 	c := &APIClient{}
 	c.cfg = cfg

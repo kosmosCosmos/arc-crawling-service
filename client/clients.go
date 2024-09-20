@@ -8,17 +8,19 @@ type DoubanClient struct {
 	ApiClient *doubanClient.APIClient
 }
 
-func NewDoubanClient(ID string, Header map[string]string, mysql doubanClient.MysqlConfiguration, redis doubanClient.RedisConfiguration) *DoubanClient {
+func NewDoubanClient(ID string, mysql *doubanClient.MysqlConfiguration) *DoubanClient {
 	cfg := doubanClient.NewConfiguration()
 	cfg.ID = ID
-	cfg.Header = Header
 	cfg.Mysql = mysql
-	cfg.Redis = redis
 	return &DoubanClient{
 		ApiClient: doubanClient.NewAPIClient(cfg),
 	}
 }
 
-func (d *DoubanClient) Hello() error {
-	return d.ApiClient.DoubanServiceApi.Hello("hello")
+func (d *DoubanClient) UpdateTopicAndReplies() error {
+	err := d.ApiClient.DoubanServiceApi.DoubanServiceApiServiceInit()
+	if err != nil {
+		return err
+	}
+	return d.ApiClient.DoubanServiceApi.UpdateTopicAndReplies()
 }
