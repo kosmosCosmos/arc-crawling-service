@@ -23,31 +23,31 @@ func (d *DoubanServiceApiService) UpdateTopicAndReplies() error {
 		return fmt.Errorf("failed to sync Reply table: %w", err)
 	}
 
-	for page := 1; ; page++ {
-		url := fmt.Sprintf(d.client.cfg.DiscussionUrl, d.client.cfg.ID, strconv.Itoa((page-1)*50))
-		topics, err := d.parseTopic(url, d.client.cfg.ID)
-		if err != nil {
-			return fmt.Errorf("failed to parse topics on page %d: %w", page, err)
-		}
-
-		if len(topics) == 0 {
-			break
-		}
-
-		if err := d.insertTopics(topics); err != nil {
-			return fmt.Errorf("failed to insert topics from page %d: %w", page, err)
-		}
-
-		log.Printf("Successfully inserted %d topics from page %d", len(topics), page)
-
-		for _, topic := range topics {
-			if err := d.updateRepliesByTopic(topic.TopicId); err != nil {
-				log.Printf("Failed to update replies for topic %s: %v", topic.TopicId, err)
-			}
-		}
-
-		time.Sleep(time.Minute * 2)
+	//for page := 1; ; page++ {
+	url := fmt.Sprintf(d.client.cfg.DiscussionUrl, d.client.cfg.ID, strconv.Itoa((1-1)*50))
+	topics, err := d.parseTopic(url, d.client.cfg.ID)
+	if err != nil {
+		return fmt.Errorf("failed to parse topics on page %d: %w", 1, err)
 	}
+
+	if len(topics) == 0 {
+		//break
+	}
+
+	if err := d.insertTopics(topics); err != nil {
+		return fmt.Errorf("failed to insert topics from page %d: %w", 1, err)
+	}
+
+	log.Printf("Successfully inserted %d topics from page %d", len(topics), 1)
+
+	for _, topic := range topics {
+		if err := d.updateRepliesByTopic(topic.TopicId); err != nil {
+			log.Printf("Failed to update replies for topic %s: %v", topic.TopicId, err)
+		}
+	}
+
+	time.Sleep(time.Minute * 2)
+	//}
 
 	return nil
 }
@@ -196,7 +196,7 @@ func (d *DoubanServiceApiService) updateTopicDetails(doc *goquery.Document, topi
 		return fmt.Errorf("failed to parse create time: %w", err)
 	}
 
-	content := strings.TrimSpace(doc.Find("#link-report .note").Text())
+	content := strings.TrimSpace(doc.Find("#link-report > div > div").Text())
 
 	affected, err := d.updateTopicContentAndTime(topicId, content, createTime.Unix())
 	if err != nil {
@@ -265,7 +265,6 @@ func (d *DoubanServiceApiService) extractReplyInfo(s *goquery.Selection, topicId
 	} else {
 		replyTime = timeIp
 	}
-
 	likeCountStr := s.Find(".reply-opts .comment-vote .count").Text()
 	likeCountStr = strings.TrimSpace(likeCountStr)
 	if likeCountStr == "" {
@@ -296,35 +295,19 @@ func (d *DoubanServiceApiService) isRecentTime(dateStr string, interval time.Dur
 }
 
 func (d *DoubanServiceApiService) parseDateTime(dateStr string) (time.Time, error) {
-	// 获取当前年份
-	currentYear := time.Now().Year()
-
-	// 检查日期字符串是否包含年份
-	if !strings.Contains(dateStr, fmt.Sprintf("%d", currentYear)) {
-		// 如果不包含年份，添加当前年份
-		dateStr = fmt.Sprintf("%d-%s", currentYear, dateStr)
+	fullFormat := "2006-01-02 15:04:05"
+	t, err := time.Parse(fullFormat, dateStr)
+	if err == nil {
+		return t, nil
 	}
 
-	// 尝试解析完整的日期时间字符串
-	// 这里假设输入格式为 "MM-DD HH:MM" 或 "YYYY-MM-DD HH:MM"
-	layouts := []string{
-		"2006-01-02 15:04",
-		"2006-01-02 15:04:05",
+	shortFormat := "01-02 15:04"
+	t, err = time.Parse(shortFormat, dateStr)
+	if err == nil {
+		currentYear := time.Now().Year()
+		t = t.AddDate(currentYear, 0, 0)
+		return t, nil
 	}
 
-	var parsedTime time.Time
-	var err error
-
-	for _, layout := range layouts {
-		parsedTime, err = time.ParseInLocation(layout, dateStr, time.Local)
-		if err == nil {
-			break
-		}
-	}
-
-	if err != nil {
-		return time.Time{}, fmt.Errorf("无法解析日期时间: %v", err)
-	}
-
-	return parsedTime, nil
+	return time.Time{}, fmt.Errorf("invalid time format: %s", dateStr)
 }
