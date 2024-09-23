@@ -1,6 +1,7 @@
-package doubanClient
+package pocketClient
 
 import (
+	"github.com/redis/go-redis/v9"
 	"xorm.io/xorm"
 )
 
@@ -9,7 +10,8 @@ type APIClient struct {
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
 
 	MysqlClient      *xorm.Engine
-	DoubanServiceApi *DoubanApiService
+	RedisClient      *redis.Client
+	PocketServiceApi *PocketApiService
 }
 
 type service struct {
@@ -22,7 +24,7 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.common.client = c
 
 	// API Services
-	c.DoubanServiceApi = (*DoubanApiService)(&c.common)
+	c.PocketServiceApi = (*PocketApiService)(&c.common)
 
 	return c
 }

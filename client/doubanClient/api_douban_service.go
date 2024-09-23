@@ -12,20 +12,20 @@ import (
 	"time"
 )
 
-type DoubanServiceApiService service
+type DoubanApiService service
 
-func (d *DoubanServiceApiService) UpdateTopicAndReplies() error {
-	if err := d.client.MysqlConnect.Sync2(Topic{}); err != nil {
+func (d *DoubanApiService) UpdateTopicAndReplies() error {
+	if err := d.client.MysqlClient.Sync2(Topic{}); err != nil {
 		return fmt.Errorf("failed to sync Topic table: %w", err)
 	}
 
-	if err := d.client.MysqlConnect.Sync2(Reply{}); err != nil {
+	if err := d.client.MysqlClient.Sync2(Reply{}); err != nil {
 		return fmt.Errorf("failed to sync Reply table: %w", err)
 	}
 
 	//for page := 1; ; page++ {
-	url := fmt.Sprintf(d.client.cfg.DiscussionUrl, d.client.cfg.ID, strconv.Itoa((1-1)*50))
-	topics, err := d.parseTopic(url, d.client.cfg.ID)
+	url := fmt.Sprintf(d.client.cfg.API.DiscussionURL, d.client.cfg.Client.ID, strconv.Itoa((1-1)*50))
+	topics, err := d.parseTopic(url, d.client.cfg.Client.ID)
 	if err != nil {
 		return fmt.Errorf("failed to parse topics on page %d: %w", 1, err)
 	}
@@ -52,9 +52,9 @@ func (d *DoubanServiceApiService) UpdateTopicAndReplies() error {
 	return nil
 }
 
-func (d *DoubanServiceApiService) updateRepliesByTopic(topicId string) error {
+func (d *DoubanApiService) updateRepliesByTopic(topicId string) error {
 	for start := 0; ; start += 100 {
-		url := fmt.Sprintf(d.client.cfg.TopicUrl, topicId, strconv.Itoa(start))
+		url := fmt.Sprintf(d.client.cfg.API.TopicURL, topicId, strconv.Itoa(start))
 		replies, err := d.parseReplies(url, topicId, start == 0)
 		if err != nil {
 			return fmt.Errorf("failed to parse replies on start %d: %w", start, err)
@@ -81,18 +81,18 @@ func (d *DoubanServiceApiService) updateRepliesByTopic(topicId string) error {
 	return nil
 }
 
-func (d *DoubanServiceApiService) insertTopics(topics []*Topic) error {
+func (d *DoubanApiService) insertTopics(topics []*Topic) error {
 	if len(topics) == 0 {
 		return nil
 	}
 
-	_, err := d.client.MysqlConnect.Insert(topics)
+	_, err := d.client.MysqlClient.Insert(topics)
 	return err
 }
 
-func (d *DoubanServiceApiService) parseTopic(url, groupId string) ([]*Topic, error) {
+func (d *DoubanApiService) parseTopic(url, groupId string) ([]*Topic, error) {
 
-	_, body, err := tools.NewRequest("GET", url, d.client.cfg.Header, nil)
+	_, body, err := tools.NewRequest("GET", url, d.client.cfg.Client.Header, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request Douban page: %w", err)
 	}
@@ -109,14 +109,14 @@ func (d *DoubanServiceApiService) parseTopic(url, groupId string) ([]*Topic, err
 			log.Printf("Failed to extract topic info: %v", err)
 			return
 		}
-		if d.isRecentTime(topic.LastReplyTime, d.client.cfg.Interval) {
+		if d.isRecentTime(topic.LastReplyTime, d.client.cfg.Client.Interval) {
 			topics = append(topics, topic)
 		}
 	})
 	return topics, nil
 }
 
-func (d *DoubanServiceApiService) extractTopicInfo(s *goquery.Selection, groupId string) (*Topic, error) {
+func (d *DoubanApiService) extractTopicInfo(s *goquery.Selection, groupId string) (*Topic, error) {
 	topicLink := s.Find("td.title a")
 	userLink := s.Find("td:nth-child(2) a")
 
@@ -153,12 +153,12 @@ func (d *DoubanServiceApiService) extractTopicInfo(s *goquery.Selection, groupId
 	}, nil
 }
 
-func (d *DoubanServiceApiService) extractID(url, prefix string) string {
+func (d *DoubanApiService) extractID(url, prefix string) string {
 	return strings.Trim(strings.TrimPrefix(url, fmt.Sprintf("https://www.douban.com/%s/", prefix)), "/")
 }
 
-func (d *DoubanServiceApiService) parseReplies(url, topicId string, updateTopicDetail bool) ([]*Reply, error) {
-	_, body, err := tools.NewRequest("GET", url, d.client.cfg.Header, nil)
+func (d *DoubanApiService) parseReplies(url, topicId string, updateTopicDetail bool) ([]*Reply, error) {
+	_, body, err := tools.NewRequest("GET", url, d.client.cfg.Client.Header, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request topic page: %w", err)
 	}
@@ -181,7 +181,7 @@ func (d *DoubanServiceApiService) parseReplies(url, topicId string, updateTopicD
 			log.Printf("Failed to extract reply info: %v", err)
 			return
 		}
-		if d.isRecentTime(reply.Time, d.client.cfg.Interval) {
+		if d.isRecentTime(reply.Time, d.client.cfg.Client.Interval) {
 			replies = append(replies, reply)
 		}
 	})
@@ -189,7 +189,7 @@ func (d *DoubanServiceApiService) parseReplies(url, topicId string, updateTopicD
 	return replies, nil
 }
 
-func (d *DoubanServiceApiService) updateTopicDetails(doc *goquery.Document, topicId string) error {
+func (d *DoubanApiService) updateTopicDetails(doc *goquery.Document, topicId string) error {
 	createDate := strings.TrimSpace(doc.Find(".create-time").Text())
 	createTime, err := dateparse.ParseIn(createDate, time.Local)
 	if err != nil {
@@ -210,37 +210,37 @@ func (d *DoubanServiceApiService) updateTopicDetails(doc *goquery.Document, topi
 	return nil
 }
 
-func (d *DoubanServiceApiService) updateTopicContentAndTime(topicId string, newContent string, newCreateTime int64) (int64, error) {
+func (d *DoubanApiService) updateTopicContentAndTime(topicId string, newContent string, newCreateTime int64) (int64, error) {
 	updateTopic := &Topic{
 		Content:    newContent,
 		CreateTime: newCreateTime,
 	}
 
-	return d.client.MysqlConnect.Where("topic_id = ?", topicId).
+	return d.client.MysqlClient.Where("topic_id = ?", topicId).
 		Cols("content", "create_time").
 		Update(updateTopic)
 }
 
-func (d *DoubanServiceApiService) updateTopicStatus(topicId string) (int64, error) {
+func (d *DoubanApiService) updateTopicStatus(topicId string) (int64, error) {
 	updateTopic := &Topic{
 		TopicStatus: "done",
 	}
 
-	return d.client.MysqlConnect.Where("topic_id = ?", topicId).
+	return d.client.MysqlClient.Where("topic_id = ?", topicId).
 		Cols("topic_status").
 		Update(updateTopic)
 }
 
-func (d *DoubanServiceApiService) insertReplies(replies []*Reply) error {
+func (d *DoubanApiService) insertReplies(replies []*Reply) error {
 	if len(replies) == 0 {
 		return nil
 	}
 
-	_, err := d.client.MysqlConnect.Insert(replies)
+	_, err := d.client.MysqlClient.Insert(replies)
 	return err
 }
 
-func (d *DoubanServiceApiService) extractReplyInfo(s *goquery.Selection, topicId string) (*Reply, error) {
+func (d *DoubanApiService) extractReplyInfo(s *goquery.Selection, topicId string) (*Reply, error) {
 	dataCid, exists := s.Attr("data-cid")
 	if !exists {
 		return nil, fmt.Errorf("data-cid attribute not found")
@@ -287,14 +287,14 @@ func (d *DoubanServiceApiService) extractReplyInfo(s *goquery.Selection, topicId
 	}, nil
 }
 
-func (d *DoubanServiceApiService) isRecentTime(dateStr string, interval time.Duration) bool {
+func (d *DoubanApiService) isRecentTime(dateStr string, interval time.Duration) bool {
 	parsedTime, _ := d.parseDateTime(dateStr)
 	isRecent := parsedTime.Before(time.Now().Add(interval))
 	log.Printf("Time: %s, is recent: %t", parsedTime.Format("2006-01-02 15:04"), isRecent)
 	return isRecent
 }
 
-func (d *DoubanServiceApiService) parseDateTime(dateStr string) (time.Time, error) {
+func (d *DoubanApiService) parseDateTime(dateStr string) (time.Time, error) {
 	fullFormat := "2006-01-02 15:04:05"
 	t, err := time.Parse(fullFormat, dateStr)
 	if err == nil {
